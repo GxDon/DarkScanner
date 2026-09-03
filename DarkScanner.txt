@@ -1,0 +1,170 @@
+#!/usr/bin/env python3
+
+import os
+import socket
+from datetime import datetime
+
+
+START_PORT = 1
+END_PORT = 1024
+TIMEOUT = 0.5
+
+RESULT_FILE = "results/scan.txt"
+
+
+def preparar_directorio():
+    os.makedirs("results", exist_ok=True)
+
+
+def resolver_objetivo(target):
+    try:
+        return socket.gethostbyname(target)
+
+    except socket.gaierror:
+        return None
+
+
+def scan_port(ip, port):
+
+    try:
+        with socket.socket(
+            socket.AF_INET,
+            socket.SOCK_STREAM
+        ) as sock:
+
+            sock.settimeout(TIMEOUT)
+
+            result = sock.connect_ex(
+                (ip, port)
+            )
+
+            return result == 0
+
+    except socket.timeout:
+        return False
+
+    except socket.error:
+        return False
+
+
+def main():
+
+    preparar_directorio()
+
+    print("=" * 60)
+    print("                 DarkScanner")
+    print("=" * 60)
+
+    target = input(
+        "Objetivo autorizado (IP o dominio): "
+    ).strip()
+
+    if not target:
+        print("[!] Debes introducir un objetivo.")
+        return
+
+    ip = resolver_objetivo(target)
+
+    if ip is None:
+        print(
+            "[!] No se pudo resolver el objetivo."
+        )
+        return
+
+    print()
+    print(f"[+] Objetivo: {target}")
+    print(f"[+] IP: {ip}")
+    print(
+        f"[+] Puertos: "
+        f"{START_PORT}-{END_PORT}"
+    )
+    print()
+
+    inicio = datetime.now()
+
+    abiertos = []
+
+    for port in range(
+        START_PORT,
+        END_PORT + 1
+    ):
+
+        if scan_port(ip, port):
+
+            print(
+                f"[OPEN] Puerto {port}"
+            )
+
+            abiertos.append(port)
+
+    fin = datetime.now()
+
+    tiempo = fin - inicio
+
+    with open(
+        RESULT_FILE,
+        "w",
+        encoding="utf-8"
+    ) as file:
+
+        file.write(
+            "DarkScanner - Reporte\n"
+        )
+
+        file.write("=" * 40 + "\n")
+
+        file.write(
+            f"Objetivo: {target}\n"
+        )
+
+        file.write(
+            f"IP: {ip}\n"
+        )
+
+        file.write(
+            f"Inicio: {inicio}\n"
+        )
+
+        file.write(
+            f"Fin: {fin}\n"
+        )
+
+        file.write(
+            f"Tiempo: {tiempo}\n\n"
+        )
+
+        file.write(
+            "Puertos abiertos:\n"
+        )
+
+        if abiertos:
+
+            for port in abiertos:
+                file.write(
+                    f"- {port}\n"
+                )
+
+        else:
+
+            file.write(
+                "Ninguno encontrado.\n"
+            )
+
+    print()
+    print(
+        "[+] Escaneo terminado."
+    )
+
+    print(
+        f"[+] Puertos abiertos: "
+        f"{len(abiertos)}"
+    )
+
+    print(
+        f"[+] Resultado: "
+        f"{RESULT_FILE}"
+    )
+
+
+if __name__ == "__main__":
+    main()
